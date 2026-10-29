@@ -75,11 +75,14 @@ export type OrderItemType = 'line_item' | 'shipping' | 'tax' | 'fee' | 'coupon';
 
 export interface OrderItem {
   itemId: number;
-  name?: string | null;
-  type?: OrderItemType;
-  qty?: number | null;
-  lineTotal?: number | null;
-  productId?: number | null;
+  type: OrderItemType;
+  name: string | null;
+  productId: number | null;
+  qty: number;
+  /** Derived by the API for product lines (amount / qty); null for shipping, tax, fee and coupon lines */
+  unitPrice: number | null;
+  /** Line total; for coupons this is the discount, as a positive number */
+  amount: number;
 }
 
 export interface OrderNote {

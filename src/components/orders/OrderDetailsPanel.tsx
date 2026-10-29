@@ -53,15 +53,16 @@ function ItemsTable({ order }: { order: OrderDetail }) {
   const currency = order.currency || 'USD';
   const money = (value: number | null | undefined) => (typeof value === 'number' ? formatMoney(value, currency) : '-');
 
-  const lineItems = order.items?.filter((item) => item.type === 'line_item' || !item.type) ?? [];
-  const otherLines = order.items?.filter((item) => item.type && item.type !== 'line_item') ?? [];
-  // Older API responses carry no item rows; fall back to the summary fields on the order itself.
-  const fallback: OrderItem[] =
-    !order.items && order.productsSummary
-      ? [{ itemId: 0, name: order.productsSummary, qty: order.itemsTotalQty ?? null, lineTotal: null }]
+  // The API already orders items: products, then fees, shipping, coupons, tax.
+  const lineItems = order.items?.filter((item) => item.type === 'line_item') ?? [];
+  const otherLines = order.items?.filter((item) => item.type !== 'line_item') ?? [];
+  // Orders synced before items were stored have none; fall back to the summary fields on the order itself.
+  const fallback: Array<Pick<OrderItem, 'itemId' | 'name' | 'productId' | 'unitPrice'> & { qty: number | null; amount: number | null }> =
+    lineItems.length === 0 && order.productsSummary
+      ? [{ itemId: 0, name: order.productsSummary, productId: null, unitPrice: null, qty: order.itemsTotalQty ?? null, amount: null }]
       : [];
 
-  const rows = order.items ? lineItems : fallback;
+  const rows = lineItems.length > 0 ? lineItems : fallback;
   const refund = order.refundTotal ?? 0;
 
   return (
@@ -79,14 +80,21 @@ function ItemsTable({ order }: { order: OrderDetail }) {
             <tr key={item.itemId} className="border-b border-sand">
               <td className="px-2 py-3 align-top">
                 <div className="text-foreground">{item.name || 'Item'}</div>
-                {item.productId != null && (
-                  <div className="mt-0.5 text-xs text-muted-foreground">Product ID {item.productId}</div>
+                {(item.productId != null || item.unitPrice != null) && (
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {[
+                      item.productId != null && `Product ID ${item.productId}`,
+                      item.unitPrice != null && `${money(item.unitPrice)} each`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </div>
                 )}
               </td>
               <td className="px-2 py-3 text-right align-top tabular-nums">
                 {item.qty != null ? formatNumber(item.qty) : '-'}
               </td>
-              <td className="px-2 py-3 text-right align-top tabular-nums">{money(item.lineTotal)}</td>
+              <td className="px-2 py-3 text-right align-top tabular-nums">{money(item.amount)}</td>
             </tr>
           ))}
           {otherLines.map((line) => (
@@ -97,7 +105,7 @@ function ItemsTable({ order }: { order: OrderDetail }) {
               </td>
               <td className="px-2 py-3 text-right">-</td>
               <td className="px-2 py-3 text-right tabular-nums">
-                {line.type === 'coupon' && line.lineTotal ? `-${money(line.lineTotal)}` : money(line.lineTotal)}
+                {line.type === 'coupon' && line.amount > 0 ? `-${money(line.amount)}` : money(line.amount)}
               </td>
             </tr>
           ))}
