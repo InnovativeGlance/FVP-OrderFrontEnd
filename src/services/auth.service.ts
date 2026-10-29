@@ -1,6 +1,11 @@
 import { api } from '@/lib/api-client';
-import type { LoginResponse } from '@/types/api';
+import type { LoginResponse, SendCodeResponse } from '@/types/api';
 
-export function login(email: string, password: string): Promise<LoginResponse> {
-  return api.post<LoginResponse>('/api/login', { email, password }, false);
+export function sendCode(email: string): Promise<SendCodeResponse> {
+  return api.post<SendCodeResponse>('/api/auth/send-code', { email }, false);
+}
+
+// code stays a string so leading zeros survive
+export function verifyCode(email: string, code: string): Promise<LoginResponse> {
+  return api.post<LoginResponse>('/api/auth/verify-code', { email, code: code.trim() }, false);
 }

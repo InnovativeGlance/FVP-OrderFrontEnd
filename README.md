@@ -31,6 +31,7 @@ VITE_API_BASE_URL=http://localhost:5000
 
 ## Notes
 
+- Login has no password: enter an admin email to get a 6-digit code (`POST /api/auth/send-code`), then enter the code (`POST /api/auth/verify-code`).
 - The access token is stored in `localStorage` (`fvp_access_token`, `fvp_user_email`). Any 401 clears it and sends you back to `/login`.
 - Dashboard filters, sorting and pagination live in the URL query string, so refreshing or sharing a link restores the same view.
 - Dates are sent to the API as local `yyyy-MM-dd`; order dates are displayed in UTC to match the store's wall-clock time.

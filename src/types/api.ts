@@ -2,6 +2,12 @@ export interface ApiErrorBody {
   message: string;
 }
 
+export interface SendCodeResponse {
+  message: string;
+  email: string;
+  expiresInMinutes: number;
+}
+
 export interface LoginResponse {
   accessToken: string;
   tokenType: 'Bearer';

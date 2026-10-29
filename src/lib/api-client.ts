@@ -5,11 +5,14 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
 
 export class ApiError extends Error {
   status: number;
+  /** Seconds from the `Retry-After` header, when the server sent one */
+  retryAfter?: number;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, retryAfter?: number) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -57,7 +60,12 @@ async function request<T>(
       onUnauthorized();
     }
     const message = (data as Partial<ApiErrorBody> | null)?.message;
-    throw new ApiError(res.status, message ?? `Request failed (${res.status})`);
+    const retryAfter = Number(res.headers.get('Retry-After'));
+    throw new ApiError(
+      res.status,
+      message ?? `Request failed (${res.status})`,
+      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
+    );
   }
   return data as T;
 }
