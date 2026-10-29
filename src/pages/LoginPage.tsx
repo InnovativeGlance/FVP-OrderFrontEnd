@@ -3,13 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '@/assets/black-logo.svg';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 import { ApiError } from '@/lib/api-client';
+
+const LABEL_CLASS = 'text-xs font-normal tracking-wide text-muted-foreground uppercase';
+const INPUT_CLASS =
+  'h-11 rounded-md border-stone-300 bg-background px-3 text-foreground dark:border-input focus-visible:border-gold focus-visible:ring-gold/25 dark:focus-visible:border-gold';
+const SUBMIT_CLASS = 'mt-2 h-10 w-full rounded-md font-semibold';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CODE_RE = /^\d{6}$/;
@@ -149,133 +154,143 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-muted/40 px-4 py-10">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <img src={logo} alt="Fox Valley Paint" width={217} height={159} className="mx-auto mb-2 h-20 w-auto" />
-          <CardTitle className="text-2xl font-semibold">FVP Order Desk</CardTitle>
-          <CardDescription>
-            {step === 'email' ? (
-              'Sign in with your admin email'
-            ) : (
-              <>
-                We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>
-              </>
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <main className="relative flex min-h-svh items-center justify-center bg-primary px-4 py-10">
+      <ThemeToggle className="absolute top-4 right-4" />
+      <div className="w-full max-w-[360px] rounded-lg border-t-4 border-gold bg-card px-6 pt-7 pb-6 text-card-foreground shadow-[0_24px_60px_-12px_rgb(0_0_0/0.45)]">
+        <img src={logo} alt="Fox Valley Paint" width={217} height={159} className="h-12 w-auto dark:brightness-0 dark:invert" />
+
+        <h1 className="mt-5 text-base font-semibold text-foreground">
+          {step === 'email' ? 'Staff sign-in' : 'Check your email'}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           {step === 'email' ? (
-            <form onSubmit={handleSendCode} noValidate className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoFocus
-                  autoComplete="username"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  aria-invalid={Boolean(error.field)}
-                  aria-describedby={error.field ? 'email-error' : undefined}
-                />
-                {error.field && (
-                  <p id="email-error" className="text-sm text-destructive">
-                    {error.field}
-                  </p>
-                )}
-              </div>
-
-              {error.alert && (
-                <Alert variant="destructive">
-                  <AlertCircle />
-                  <AlertDescription>{error.alert}</AlertDescription>
-                </Alert>
-              )}
-
-              <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="animate-spin" />
-                    Sending code…
-                  </>
-                ) : (
-                  'Send code'
-                )}
-              </Button>
-            </form>
+            'Enter your staff email to receive a sign-in code.'
           ) : (
-            <form onSubmit={handleVerify} noValidate className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="code">Verification code</Label>
-                <Input
-                  id="code"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  pattern="\d{6}"
-                  maxLength={6}
-                  autoFocus
-                  placeholder="000000"
-                  className="text-center font-mono text-lg tracking-[0.5em]"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  aria-invalid={Boolean(error.field)}
-                  aria-describedby={error.field ? 'code-error' : undefined}
-                />
-                {error.field && (
-                  <p id="code-error" className="text-sm text-destructive">
-                    {error.field}
-                  </p>
-                )}
-              </div>
+            <>
+              We sent a 6-digit code to <span className="font-medium break-all text-foreground">{email}</span>
+            </>
+          )}
+        </p>
 
-              {error.alert && (
-                <Alert variant="destructive">
-                  <AlertCircle />
-                  <AlertDescription>{error.alert}</AlertDescription>
-                </Alert>
+        {step === 'email' ? (
+          <form onSubmit={handleSendCode} noValidate className="mt-6 flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email" className={LABEL_CLASS}>
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                autoFocus
+                autoComplete="username"
+                placeholder="you@foxvalleypaint.com"
+                className={INPUT_CLASS}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={Boolean(error.field)}
+                aria-describedby={error.field ? 'email-error' : undefined}
+              />
+              {error.field && (
+                <p id="email-error" className="text-sm text-destructive">
+                  {error.field}
+                </p>
               )}
+            </div>
 
-              <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="animate-spin" />
-                    Verifying…
-                  </>
-                ) : (
-                  'Verify'
-                )}
-              </Button>
+            {error.alert && (
+              <Alert variant="destructive">
+                <AlertCircle />
+                <AlertDescription>{error.alert}</AlertDescription>
+              </Alert>
+            )}
 
-              <Button
+            <Button type="submit" size="lg" className={SUBMIT_CLASS} disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Sending code…
+                </>
+              ) : (
+                'Send code'
+              )}
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerify} noValidate className="mt-6 flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="code" className={LABEL_CLASS}>
+                Verification code
+              </Label>
+              <Input
+                id="code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="\d{6}"
+                maxLength={6}
+                autoFocus
+                placeholder="000000"
+                className={`${INPUT_CLASS} text-center font-mono text-lg tracking-[0.5em] md:text-lg`}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                aria-invalid={Boolean(error.field)}
+                aria-describedby={error.field ? 'code-error' : undefined}
+              />
+              {error.field && (
+                <p id="code-error" className="text-sm text-destructive">
+                  {error.field}
+                </p>
+              )}
+            </div>
+
+            {error.alert && (
+              <Alert variant="destructive">
+                <AlertCircle />
+                <AlertDescription>{error.alert}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button type="submit" size="lg" className={SUBMIT_CLASS} disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Verifying…
+                </>
+              ) : (
+                'Verify'
+              )}
+            </Button>
+
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <button
                 type="button"
-                variant="outline"
-                className="w-full"
+                onClick={backToEmail}
+                className="inline-flex items-center gap-1 rounded-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
+                <ArrowLeft className="size-3.5" aria-hidden />
+                Change email
+              </button>
+              <button
+                type="button"
                 onClick={handleResend}
                 disabled={resending || resendIn > 0}
+                className="inline-flex items-center gap-1 rounded-sm font-medium text-primary hover:underline dark:text-gold focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none disabled:text-muted-foreground/60 disabled:no-underline"
               >
                 {resending ? (
                   <>
-                    <Loader2 className="animate-spin" />
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
                     Sending…
                   </>
                 ) : resendIn > 0 ? (
-                  `Resend code in ${resendIn}s`
+                  `Resend in ${resendIn}s`
                 ) : (
                   'Resend code'
                 )}
-              </Button>
-
-              <Button type="button" variant="link" className="self-center" onClick={backToEmail}>
-                <ArrowLeft />
-                Use a different email
-              </Button>
-            </form>
-          )}
-        </CardContent>
-      </Card>
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </main>
   );
 }

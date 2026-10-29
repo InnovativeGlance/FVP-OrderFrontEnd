@@ -71,6 +71,55 @@ export interface OrdersResponse {
   pagination: Pagination;
 }
 
+export type OrderItemType = 'line_item' | 'shipping' | 'tax' | 'fee' | 'coupon';
+
+export interface OrderItem {
+  itemId: number;
+  name?: string | null;
+  type?: OrderItemType;
+  qty?: number | null;
+  lineTotal?: number | null;
+  productId?: number | null;
+}
+
+export interface OrderNote {
+  noteId: number;
+  author: string | null;
+  createdAt: string | null;
+  content: string;
+}
+
+/** Newest first */
+export interface OrderNotesResponse {
+  data: OrderNote[];
+}
+
+/** The stored order document; fields WordPress never sent are missing rather than null */
+export interface OrderDetail {
+  orderId: number;
+  status: string;
+  orderDate: string;
+  total?: number;
+  currency?: string;
+  customer?: Partial<Customer> | null;
+  shipping?: { name?: string | null; company?: string | null; address?: Partial<Address> | null } | null;
+  itemsTotalQty?: number;
+  productsSummary?: string | null;
+  paymentMethod?: string | null;
+  transactionId?: string | null;
+  customerNote?: string | null;
+  refundTotal?: number;
+  refundReason?: string | null;
+  trackingNumber?: string | null;
+  trackingProvider?: string | null;
+  /** Only present once the API joins the order's item collection */
+  items?: OrderItem[];
+}
+
+export interface OrderDetailResponse {
+  data: OrderDetail;
+}
+
 export interface StatusesResponse {
   data: OrderStatus[];
 }

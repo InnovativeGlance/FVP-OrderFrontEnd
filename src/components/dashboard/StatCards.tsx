@@ -18,10 +18,10 @@ interface StatItem {
 
 // Icon chip colours, in card order
 const TONES = [
-  'bg-blue-50 text-blue-600',
-  'bg-emerald-50 text-emerald-600',
-  'bg-rose-50 text-rose-600',
-  'bg-violet-50 text-violet-600',
+  'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300',
+  'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
+  'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300',
+  'bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300',
 ];
 
 const TITLES = ['Total Orders', 'Total Revenue', 'Refunds Issued', 'Order Date Range'];
@@ -88,7 +88,7 @@ export function StatCards() {
       {(items ?? TITLES.map((title) => ({ title, value: '' }))).map((item, i) => {
         const Icon = ICONS[i];
         return (
-          <Card key={item.title} className="gap-3 bg-white shadow-xs">
+          <Card key={item.title} className="gap-3 shadow-xs">
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{item.title}</CardTitle>
               <span

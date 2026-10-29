@@ -32,21 +32,31 @@ interface OrdersTableProps {
   sortBy: SortBy;
   sortOrder: SortOrder;
   onSort: (key: SortBy) => void;
+  onSelectOrder: (orderId: number) => void;
   /** Whether any search/status/date filter is active — changes the empty-state copy */
   hasFilters?: boolean;
   onClearFilters?: () => void;
 }
 
-export function OrdersTable({ rows, loading, sortBy, sortOrder, onSort, hasFilters, onClearFilters }: OrdersTableProps) {
+export function OrdersTable({
+  rows,
+  loading,
+  sortBy,
+  sortOrder,
+  onSort,
+  onSelectOrder,
+  hasFilters,
+  onClearFilters,
+}: OrdersTableProps) {
   const showSkeleton = rows === null;
 
   return (
     <Table
       aria-busy={loading}
-      className="min-w-[960px] bg-white [&_td]:px-4 [&_td]:py-3 [&_th]:h-11 [&_th]:px-4 [&_tbody_tr]:border-slate-100"
+      className="min-w-[960px] bg-card [&_td]:px-4 [&_td]:py-3 [&_th]:h-11 [&_th]:px-4 [&_tbody_tr]:border-sand"
     >
-      <TableHeader className="bg-slate-50">
-        <TableRow className="border-slate-200 hover:bg-transparent">
+      <TableHeader className="bg-sand-50">
+        <TableRow className="border-sand hover:bg-transparent">
           {COLUMNS.map((col) => {
             const active = sortBy === col.key;
             const Icon = !active ? ArrowUpDown : sortOrder === 'asc' ? ArrowUp : ArrowDown;
@@ -113,7 +123,19 @@ export function OrdersTable({ rows, loading, sortBy, sortOrder, onSort, hasFilte
         {rows?.map((order) => {
           const { customer } = order;
           return (
-            <TableRow key={order.orderId} className="hover:bg-slate-50/80">
+            <TableRow
+              key={order.orderId}
+              tabIndex={0}
+              aria-label={`View details for order ${order.orderId}`}
+              onClick={() => onSelectOrder(order.orderId)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelectOrder(order.orderId);
+                }
+              }}
+              className="cursor-pointer hover:bg-sand-50 focus-visible:bg-sand-50 focus-visible:outline-2 focus-visible:outline-ring"
+            >
               <TableCell className="font-semibold">#{order.orderId}</TableCell>
               <TableCell className="whitespace-nowrap">{formatUtcDate(order.createdAt)}</TableCell>
               <TableCell className="max-w-56">

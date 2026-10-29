@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { StatCards } from '@/components/dashboard/StatCards';
 import { OrderFilters } from '@/components/orders/OrderFilters';
+import { OrderDetailsPanel } from '@/components/orders/OrderDetailsPanel';
 import { OrdersTable } from '@/components/orders/OrdersTable';
 import { Pagination } from '@/components/orders/Pagination';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -19,7 +20,7 @@ import type { OrderStatus, OrdersQuery, OrdersResponse, SortBy, SortOrder } from
 
 const DEFAULT_SORT_BY: SortBy = 'createdAt';
 const DEFAULT_SORT_ORDER: SortOrder = 'desc';
-const DEFAULT_LIMIT = 25;
+const DEFAULT_LIMIT = 10;
 const DATE_FMT = 'yyyy-MM-dd';
 
 const SORT_KEYS: readonly SortBy[] = [
@@ -122,6 +123,7 @@ export default function DashboardPage() {
   );
 
   const [result, setResult] = useState<OrdersResponse | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -174,8 +176,9 @@ export default function DashboardPage() {
   const hasFilters = Boolean(urlSearch.trim() || status || from || to);
 
   return (
-    <div className="min-h-svh bg-slate-50">
+    <div className="min-h-svh bg-page">
       <AppHeader />
+      <OrderDetailsPanel orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
       <main className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
@@ -184,7 +187,7 @@ export default function DashboardPage() {
 
         <StatCards />
 
-        <Card className="gap-5 bg-white p-4 shadow-xs sm:p-6">
+        <Card className="gap-5 p-4 shadow-xs sm:p-6">
           <OrderFilters
             search={searchInput}
             onSearchChange={setSearchInput}
@@ -220,6 +223,7 @@ export default function DashboardPage() {
                 sortBy={sortBy}
                 sortOrder={sortOrder}
                 onSort={handleSort}
+                onSelectOrder={setSelectedOrderId}
                 hasFilters={hasFilters}
                 onClearFilters={handleClear}
               />
