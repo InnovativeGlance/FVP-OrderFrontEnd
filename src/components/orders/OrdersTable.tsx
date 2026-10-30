@@ -1,10 +1,12 @@
+import type { ReactNode } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, FilterX, PackageSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatLocation, formatMoney, formatNumber, formatUtcDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { OrderListItem, SortBy, SortOrder } from '@/types/api';
+import { CustomerLink } from '@/components/customers/CustomerLink';
 import { StatusBadge } from './StatusBadge';
 
 interface Column {
@@ -36,6 +38,56 @@ interface OrdersTableProps {
   /** Whether any search/status/date filter is active — changes the empty-state copy */
   hasFilters?: boolean;
   onClearFilters?: () => void;
+  /** Columns to leave out, e.g. the customer columns on a single customer's page */
+  hiddenColumns?: readonly SortBy[];
+  /** Formatted grand total shown in a footer row under the Total column */
+  totalValue?: string;
+}
+
+function renderCell(key: SortBy, order: OrderListItem): ReactNode {
+  const { customer } = order;
+  switch (key) {
+    case 'orderId':
+      return <TableCell key={key} className="font-semibold">#{order.orderId}</TableCell>;
+    case 'createdAt':
+      return <TableCell key={key} className="whitespace-nowrap">{formatUtcDate(order.createdAt)}</TableCell>;
+    case 'customerName':
+      return (
+        <TableCell key={key} className="max-w-56">
+          {customer.email ? (
+            <CustomerLink email={customer.email} className="block truncate font-medium">
+              {customer.name || customer.email}
+            </CustomerLink>
+          ) : (
+            <div className="truncate font-medium">{customer.name || '-'}</div>
+          )}
+          {customer.company && <div className="truncate text-xs text-muted-foreground">{customer.company}</div>}
+        </TableCell>
+      );
+    case 'email':
+      return (
+        <TableCell key={key} className="max-w-64">
+          <div className="truncate">{customer.email || '-'}</div>
+          {customer.phone && <div className="truncate text-xs text-muted-foreground">{customer.phone}</div>}
+        </TableCell>
+      );
+    case 'location':
+      return <TableCell key={key} className="whitespace-nowrap">{formatLocation(customer.address)}</TableCell>;
+    case 'itemsTotalQty':
+      return <TableCell key={key} className="text-right tabular-nums">{formatNumber(order.itemsTotalQty)}</TableCell>;
+    case 'total':
+      return (
+        <TableCell key={key} className="text-right font-medium tabular-nums">
+          {formatMoney(order.total, order.currency)}
+        </TableCell>
+      );
+    case 'status':
+      return (
+        <TableCell key={key}>
+          <StatusBadge status={order.status} />
+        </TableCell>
+      );
+  }
 }
 
 export function OrdersTable({
@@ -47,17 +99,25 @@ export function OrdersTable({
   onSelectOrder,
   hasFilters,
   onClearFilters,
+  hiddenColumns,
+  totalValue,
 }: OrdersTableProps) {
   const showSkeleton = rows === null;
+  const columns = hiddenColumns?.length ? COLUMNS.filter((col) => !hiddenColumns.includes(col.key)) : COLUMNS;
+  const totalIndex = columns.findIndex((col) => col.key === 'total');
+  const showFooter = totalValue !== undefined && totalIndex > 0 && Boolean(rows?.length);
 
   return (
     <Table
       aria-busy={loading}
-      className="min-w-[960px] bg-card [&_td]:px-4 [&_td]:py-3 [&_th]:h-11 [&_th]:px-4 [&_tbody_tr]:border-sand"
+      className={cn(
+        'bg-card [&_td]:px-4 [&_td]:py-3 [&_th]:h-11 [&_th]:px-4 [&_tbody_tr]:border-sand',
+        columns.length === COLUMNS.length ? 'min-w-[960px]' : 'min-w-[600px]',
+      )}
     >
       <TableHeader className="bg-sand-50">
         <TableRow className="border-sand hover:bg-transparent">
-          {COLUMNS.map((col) => {
+          {columns.map((col) => {
             const active = sortBy === col.key;
             const Icon = !active ? ArrowUpDown : sortOrder === 'asc' ? ArrowUp : ArrowDown;
             return (
@@ -86,7 +146,7 @@ export function OrdersTable({
         {showSkeleton &&
           Array.from({ length: SKELETON_ROWS }, (_, i) => (
             <TableRow key={i}>
-              {COLUMNS.map((col) => (
+              {columns.map((col) => (
                 <TableCell key={col.key} className={cn(col.align === 'right' && 'text-right')}>
                   <Skeleton className={cn('h-4', col.align === 'right' ? 'ml-auto w-12' : 'w-24')} />
                 </TableCell>
@@ -96,7 +156,7 @@ export function OrdersTable({
 
         {rows?.length === 0 && (
           <TableRow className="hover:bg-transparent">
-            <TableCell colSpan={COLUMNS.length} className="py-16">
+            <TableCell colSpan={columns.length} className="py-16">
               <div className="flex flex-col items-center gap-3 text-center whitespace-normal">
                 <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                   <PackageSearch className="size-6" aria-hidden />
@@ -120,46 +180,35 @@ export function OrdersTable({
           </TableRow>
         )}
 
-        {rows?.map((order) => {
-          const { customer } = order;
-          return (
-            <TableRow
-              key={order.orderId}
-              tabIndex={0}
-              aria-label={`View details for order ${order.orderId}`}
-              onClick={() => onSelectOrder(order.orderId)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  onSelectOrder(order.orderId);
-                }
-              }}
-              className="cursor-pointer hover:bg-sand-50 focus-visible:bg-sand-50 focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              <TableCell className="font-semibold">#{order.orderId}</TableCell>
-              <TableCell className="whitespace-nowrap">{formatUtcDate(order.createdAt)}</TableCell>
-              <TableCell className="max-w-56">
-                <div className="truncate font-medium">{customer.name || '-'}</div>
-                {customer.company && (
-                  <div className="truncate text-xs text-muted-foreground">{customer.company}</div>
-                )}
-              </TableCell>
-              <TableCell className="max-w-64">
-                <div className="truncate">{customer.email || '-'}</div>
-                {customer.phone && <div className="truncate text-xs text-muted-foreground">{customer.phone}</div>}
-              </TableCell>
-              <TableCell className="whitespace-nowrap">{formatLocation(customer.address)}</TableCell>
-              <TableCell className="text-right tabular-nums">{formatNumber(order.itemsTotalQty)}</TableCell>
-              <TableCell className="text-right font-medium tabular-nums">
-                {formatMoney(order.total, order.currency)}
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={order.status} />
-              </TableCell>
-            </TableRow>
-          );
-        })}
+        {rows?.map((order) => (
+          <TableRow
+            key={order.orderId}
+            tabIndex={0}
+            aria-label={`View details for order ${order.orderId}`}
+            onClick={() => onSelectOrder(order.orderId)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onSelectOrder(order.orderId);
+              }
+            }}
+            className="cursor-pointer hover:bg-sand-50 focus-visible:bg-sand-50 focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            {columns.map((col) => renderCell(col.key, order))}
+          </TableRow>
+        ))}
       </TableBody>
+      {showFooter && (
+        <TableFooter className="border-t-2 border-sand bg-sand-50">
+          <TableRow className="hover:bg-transparent">
+            <TableCell colSpan={totalIndex} className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Total
+            </TableCell>
+            <TableCell className="text-right font-semibold tabular-nums">{totalValue}</TableCell>
+            {totalIndex < columns.length - 1 && <TableCell colSpan={columns.length - totalIndex - 1} />}
+          </TableRow>
+        </TableFooter>
+      )}
     </Table>
   );
 }

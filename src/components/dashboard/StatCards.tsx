@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, CalendarRange, DollarSign, RotateCcw, ShoppingCart } from 'lucide-react';
+import { AlertCircle, CalendarRange, DollarSign, RotateCcw, ShoppingCart, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -83,24 +83,37 @@ export function StatCards() {
 
   const items = cards ? toItems(cards) : null;
 
+  return <StatGrid label="Order statistics" titles={TITLES} icons={ICONS} values={items?.map((item) => item.value) ?? null} />;
+}
+
+interface StatGridProps {
+  label: string;
+  titles: readonly string[];
+  icons: readonly LucideIcon[];
+  /** One per title, in the same order; null while loading */
+  values: readonly string[] | null;
+}
+
+/** Four-up row of stat cards; shared by the dashboard and the customer page */
+export function StatGrid({ label, titles, icons, values }: StatGridProps) {
   return (
-    <section aria-label="Order statistics" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {(items ?? TITLES.map((title) => ({ title, value: '' }))).map((item, i) => {
-        const Icon = ICONS[i];
+    <section aria-label={label} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {titles.map((title, i) => {
+        const Icon = icons[i];
         return (
-          <Card key={item.title} className="gap-3 shadow-xs">
+          <Card key={title} className="gap-3 shadow-xs">
             <CardHeader className="flex flex-row items-center justify-between gap-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{item.title}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
               <span
-                className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg [&_svg]:size-4.5', TONES[i])}
+                className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg [&_svg]:size-4.5', TONES[i % TONES.length])}
                 aria-hidden
               >
                 <Icon />
               </span>
             </CardHeader>
             <CardContent>
-              {items ? (
-                <p className="text-xl font-semibold tracking-tight tabular-nums">{item.value}</p>
+              {values ? (
+                <p className="text-xl font-semibold tracking-tight tabular-nums">{values[i]}</p>
               ) : (
                 <Skeleton className="h-8 w-3/4" />
               )}

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { StatCards } from '@/components/dashboard/StatCards';
 import { OrderFilters } from '@/components/orders/OrderFilters';
+import { ExportButton } from '@/components/orders/ExportButton';
 import { OrderDetailsPanel } from '@/components/orders/OrderDetailsPanel';
 import { OrdersTable } from '@/components/orders/OrdersTable';
 import { Pagination } from '@/components/orders/Pagination';
@@ -121,6 +122,8 @@ export default function DashboardPage() {
     }),
     [page, limit, urlSearch, status, from, to, sortBy, sortOrder],
   );
+  // Same filters and sort as the table, without pagination (the export holds every matching order)
+  const { page: _page, limit: _limit, ...exportQuery } = query;
 
   const [result, setResult] = useState<OrdersResponse | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -199,6 +202,13 @@ export default function DashboardPage() {
             onToChange={(d) => updateParams({ to: d ? format(d, DATE_FMT) : undefined })}
             onClear={handleClear}
             canClear={canClear}
+            actions={
+              <ExportButton
+                query={exportQuery}
+                disabled={!result || result.pagination.totalItems === 0}
+                className="sm:self-end"
+              />
+            }
           />
 
           {error && (

@@ -1,13 +1,17 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlertCircle, Loader2, X } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CustomerLink } from '@/components/customers/CustomerLink';
 import { StatusBadge } from '@/components/orders/StatusBadge';
 import { ApiError, isAbortError } from '@/lib/api-client';
-import { formatMoney, formatNumber, formatUtcDateTime } from '@/lib/format';
+import { formatAddress, formatMoney, formatNumber, formatUtcDateTime } from '@/lib/format';
+import { looksLikeHtml, sanitizeHtml } from '@/lib/sanitize';
+import { cn } from '@/lib/utils';
 import { getOrder, getOrderNotes } from '@/services/orders.service';
-import type { Address, OrderDetail, OrderItem, OrderItemType, OrderNote } from '@/types/api';
+import type { OrderDetail, OrderItem, OrderItemType, OrderNote, Pagination } from '@/types/api';
 
 interface OrderDetailsPanelProps {
   orderId: number | null;
@@ -21,14 +25,6 @@ const ITEM_TYPE_LABELS: Record<Exclude<OrderItemType, 'line_item'>, string> = {
   coupon: 'Coupon',
 };
 
-function formatAddress(address: Partial<Address> | null | undefined): string {
-  if (!address) return '';
-  if (address.full) return address.full;
-  return [address.line1, address.line2, address.city, address.state, address.postcode, address.country]
-    .filter(Boolean)
-    .join(', ');
-}
-
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-7 first:mt-0">
@@ -40,7 +36,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Field({ label, value, wide }: { label: string; value: string | null | undefined; wide?: boolean }) {
+function Field({ label, value, wide }: { label: string; value: ReactNode; wide?: boolean }) {
   return (
     <div className={wide ? 'col-span-2 min-w-0' : 'min-w-0'}>
       <dt className="text-xs text-muted-foreground">{label}</dt>
@@ -140,19 +136,33 @@ function ItemsTable({ order }: { order: OrderDetail }) {
   );
 }
 
+const NOTES_PAGE_SIZE = 10;
+
 interface NotesState {
   notes: OrderNote[] | null;
+  pagination: Pagination | null;
   loading: boolean;
   error: string | null;
   retry: () => void;
+  loadMore: () => void;
 }
 
-/** Notes come from their own endpoint; fetched alongside the order so neither waits on the other */
+/** Notes come from their own endpoint; fetched alongside the order so neither waits on the other.
+ *  Pages are appended as the user scrolls; a failed page keeps what's already loaded. */
 function useOrderNotes(orderId: number | null): NotesState {
   const [notes, setNotes] = useState<OrderNote[] | null>(null);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+
+  // A different order starts again from the first page.
+  const [pagedId, setPagedId] = useState(orderId);
+  if (orderId !== pagedId) {
+    setPagedId(orderId);
+    setPage(1);
+  }
 
   useEffect(() => {
     if (orderId === null) return;
@@ -160,11 +170,20 @@ function useOrderNotes(orderId: number | null): NotesState {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    setNotes(null);
+    if (page === 1) {
+      setNotes(null);
+      setPagination(null);
+    }
 
-    getOrderNotes(orderId, controller.signal)
+    getOrderNotes(orderId, { page, limit: NOTES_PAGE_SIZE }, controller.signal)
       .then((res) => {
-        setNotes(res.data);
+        setNotes((prev) => {
+          if (page === 1 || !prev) return res.data;
+          // Offset paging shifts when a note is added meanwhile; don't show the same note twice.
+          const seen = new Set(prev.map((n) => n.noteId));
+          return [...prev, ...res.data.filter((n) => !seen.has(n.noteId))];
+        });
+        setPagination(res.pagination);
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -175,21 +194,87 @@ function useOrderNotes(orderId: number | null): NotesState {
       });
 
     return () => controller.abort();
-  }, [orderId, attempt]);
+  }, [orderId, page, attempt]);
 
-  return { notes, loading, error, retry: () => setAttempt((n) => n + 1) };
+  const loadMore = useCallback(() => {
+    if (loading || error || !pagination?.hasNextPage) return;
+    setPage(pagination.page + 1);
+  }, [loading, error, pagination]);
+
+  return { notes, pagination, loading, error, retry: () => setAttempt((n) => n + 1), loadMore };
 }
 
-function OrderNotes({ notes, loading, error, retry }: NotesState) {
+/** Calls onVisible when it scrolls into view (or is already in view when mounted) */
+function LoadMoreSentinel({ onVisible }: { onVisible: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && onVisible(), {
+      rootMargin: '200px 0px',
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onVisible]);
+
+  return <div ref={ref} aria-hidden className="h-px" />;
+}
+
+function NoteSkeleton() {
   return (
-    <Section title={notes ? `Order notes (${notes.length})` : 'Order notes'}>
-      {loading && (
-        <div role="status" className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-          Loading notes…
-        </div>
+    <li className="py-3">
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-32" />
+      </div>
+      <Skeleton className="mt-2 h-3.5 w-full" />
+      <Skeleton className="mt-1.5 h-3.5 w-3/5" />
+    </li>
+  );
+}
+
+function NotesSkeleton({ count }: { count: number }) {
+  return (
+    <ol role="status" aria-label="Loading notes" className="-mt-1 divide-y divide-sand">
+      {Array.from({ length: count }, (_, i) => (
+        <NoteSkeleton key={i} />
+      ))}
+    </ol>
+  );
+}
+
+const NOTE_CLASS = 'mt-1 text-sm break-words text-foreground';
+
+/** Notes arrive as plain text or as HTML from WooCommerce; HTML is sanitized before it's rendered */
+function NoteContent({ content }: { content: string | null }) {
+  const html = useMemo(() => {
+    if (!content || !looksLikeHtml(content)) return null;
+    // Plain newlines would collapse in HTML; keep them unless the note already uses its own line breaks
+    const withBreaks = /<(br|p|li)\b/i.test(content) ? content : content.replace(/\r?\n/g, '<br>');
+    return sanitizeHtml(withBreaks);
+  }, [content]);
+
+  if (html === null) return <p className={cn(NOTE_CLASS, 'whitespace-pre-wrap')}>{content || '-'}</p>;
+  return (
+    <div
+      className={cn(
+        NOTE_CLASS,
+        '[&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 dark:[&_a]:text-gold [&_li]:ml-5 [&_ol]:list-decimal [&_p+p]:mt-2 [&_ul]:list-disc',
       )}
-      {error && (
+      // Safe: sanitizeHtml strips scripts, event handlers and anything outside a small tag allowlist
+      dangerouslySetInnerHTML={{ __html: html || '-' }}
+    />
+  );
+}
+
+function OrderNotes({ notes, pagination, loading, error, retry, loadMore }: NotesState) {
+  const firstPage = notes === null;
+
+  return (
+    <Section title={pagination ? `Order notes (${formatNumber(pagination.totalItems)})` : 'Order notes'}>
+      {loading && firstPage && <NotesSkeleton count={3} />}
+      {error && firstPage && (
         <Alert variant="destructive">
           <AlertCircle />
           <AlertTitle>Couldn't load notes</AlertTitle>
@@ -210,16 +295,31 @@ function OrderNotes({ notes, loading, error, retry }: NotesState) {
                 <span className="font-semibold text-foreground">{note.author || 'System'}</span>
                 {note.createdAt && <> - {formatUtcDateTime(note.createdAt)}</>}
               </p>
-              <p className="mt-1 text-sm whitespace-pre-wrap break-words text-foreground">{note.content || '-'}</p>
+              <NoteContent content={note.content} />
             </li>
           ))}
         </ol>
       )}
+      {loading && !firstPage && (
+        <div className="border-t border-sand">
+          <NotesSkeleton count={2} />
+        </div>
+      )}
+      {error && !firstPage && (
+        <div className="flex flex-wrap items-center gap-3 border-t border-sand pt-3 text-sm text-destructive">
+          <AlertCircle className="size-4" aria-hidden />
+          <span>Couldn't load more notes: {error}</span>
+          <Button size="sm" variant="outline" onClick={retry}>
+            Retry
+          </Button>
+        </div>
+      )}
+      {!loading && !error && pagination?.hasNextPage && <LoadMoreSentinel onVisible={loadMore} />}
     </Section>
   );
 }
 
-function OrderContent({ order, notes }: { order: OrderDetail; notes: NotesState }) {
+function OrderContent({ order, notes, onClose }: { order: OrderDetail; notes: NotesState; onClose: () => void }) {
   const customer = order.customer ?? {};
   const shipping = order.shipping ?? {};
   const tracking = [order.trackingProvider, order.trackingNumber].filter(Boolean).join(' ');
@@ -228,7 +328,18 @@ function OrderContent({ order, notes }: { order: OrderDetail; notes: NotesState 
     <>
       <Section title="Billing">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
-          <Field label="Name" value={customer.name} />
+          <Field
+            label="Name"
+            value={
+              customer.email ? (
+                <CustomerLink email={customer.email} onClick={onClose} className="font-medium">
+                  {customer.name || customer.email}
+                </CustomerLink>
+              ) : (
+                customer.name
+              )
+            }
+          />
           <Field label="Company" value={customer.company} />
           <Field label="Email" value={customer.email} />
           <Field label="Phone" value={customer.phone} />
@@ -343,7 +454,7 @@ export function OrderDetailsPanel({ orderId, onClose }: OrderDetailsPanelProps) 
                 </AlertDescription>
               </Alert>
             )}
-            {order && <OrderContent order={order} notes={notes} />}
+            {order && <OrderContent order={order} notes={notes} onClose={onClose} />}
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

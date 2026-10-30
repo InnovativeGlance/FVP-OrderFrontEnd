@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { FilterX, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,8 @@ interface OrderFiltersProps {
   onToChange: (date: Date | undefined) => void;
   onClear: () => void;
   canClear: boolean;
+  /** Extra buttons placed after "Clear filters", e.g. Export */
+  actions?: ReactNode;
 }
 
 export function OrderFilters({
@@ -37,6 +39,7 @@ export function OrderFilters({
   onToChange,
   onClear,
   canClear,
+  actions,
 }: OrderFiltersProps) {
   const [statuses, setStatuses] = useState<OrderStatus[]>([]);
 
@@ -117,6 +120,7 @@ export function OrderFilters({
         <FilterX />
         Clear filters
       </Button>
+      {actions}
     </div>
   );
 }

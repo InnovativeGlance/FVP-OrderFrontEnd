@@ -5,6 +5,7 @@ import { CalendarIcon, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DISPLAY_DATE_FMT } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 interface DatePickerProps {
@@ -38,7 +39,7 @@ export function DatePicker({ id, value, onChange, placeholder, minDate, maxDate,
             className={cn('w-full justify-start font-normal', value && 'pr-8', !value && 'text-muted-foreground')}
           >
             <CalendarIcon />
-            <span className="truncate">{value ? format(value, 'MMM d, yyyy') : placeholder}</span>
+            <span className="truncate">{value ? format(value, DISPLAY_DATE_FMT) : placeholder}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">

@@ -23,11 +23,20 @@ export const setUnauthorizedHandler = (fn: () => void) => {
   onUnauthorized = fn;
 };
 
-async function request<T>(
-  method: string,
-  path: string,
-  opts: { query?: Query; body?: unknown; auth?: boolean; signal?: AbortSignal } = {},
-): Promise<T> {
+interface RequestOptions {
+  query?: Query;
+  body?: unknown;
+  auth?: boolean;
+  signal?: AbortSignal;
+}
+
+async function request<T>(method: string, path: string, opts: RequestOptions = {}): Promise<T> {
+  const res = await send(method, path, opts);
+  return (await res.json().catch(() => ({}))) as T;
+}
+
+/** Sends the request and throws ApiError for network failures and non-2xx responses; the body is left unread on success */
+async function send(method: string, path: string, opts: RequestOptions): Promise<Response> {
   const url = new URL(path, BASE_URL);
   Object.entries(opts.query ?? {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, String(v));
@@ -53,8 +62,8 @@ async function request<T>(
     throw new ApiError(0, 'Cannot reach the server. Is the API running?');
   }
 
-  const data: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {
+    const data: unknown = await res.json().catch(() => ({}));
     if (res.status === 401 && opts.auth !== false) {
       clearToken();
       onUnauthorized();
@@ -67,12 +76,26 @@ async function request<T>(
       Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
     );
   }
-  return data as T;
+  return res;
+}
+
+export interface DownloadedFile {
+  blob: Blob;
+  /** From Content-Disposition, when the server sent one */
+  fileName: string | null;
+}
+
+async function download(path: string, query?: Query, signal?: AbortSignal): Promise<DownloadedFile> {
+  const res = await send('GET', path, { query, signal });
+  const disposition = res.headers.get('Content-Disposition') ?? '';
+  const fileName = /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? null;
+  return { blob: await res.blob(), fileName };
 }
 
 export const api = {
   get: <T>(path: string, query?: Query, signal?: AbortSignal) =>
     request<T>('GET', path, { query, signal }),
+  download,
   post: <T>(path: string, body?: unknown, auth = true) =>
     request<T>('POST', path, { body, auth }),
 };

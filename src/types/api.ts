@@ -68,6 +68,9 @@ export interface Pagination {
 
 export interface OrdersResponse {
   data: OrderListItem[];
+  /** Sum of `total` over every order matching the filters (all pages, all statuses, refunds not subtracted) */
+  totalOrderValue?: number;
+  currency?: string;
   pagination: Pagination;
 }
 
@@ -95,6 +98,13 @@ export interface OrderNote {
 /** Newest first */
 export interface OrderNotesResponse {
   data: OrderNote[];
+  pagination: Pagination;
+}
+
+export interface OrderNotesQuery {
+  page?: number;
+  /** Max 100 */
+  limit?: number;
 }
 
 /** The stored order document; fields WordPress never sent are missing rather than null */
@@ -135,6 +145,20 @@ export interface DashboardCards {
   currency: string;
 }
 
+export interface CustomerSummary {
+  totalOrders: number;
+  /** Net revenue, same rule as the dashboard's totalRevenue */
+  totalSpent: number;
+  firstOrderDate: string | null;
+  lastOrderDate: string | null;
+  currency: string;
+}
+
+/** Name, company, phone and address come from the customer's most recent order */
+export interface CustomerDetailResponse {
+  data: { customer: Customer; summary: CustomerSummary };
+}
+
 export type SortBy =
   | 'orderId'
   | 'createdAt'
@@ -158,4 +182,9 @@ export interface OrdersQuery {
   to?: string;
   sortBy?: SortBy;
   sortOrder?: SortOrder;
+  /** Limit the list to one customer (case-insensitive) */
+  customerEmail?: string;
 }
+
+/** CSV export takes the list filters and sort; it always includes every matching order */
+export type OrdersExportQuery = Omit<OrdersQuery, 'page' | 'limit'>;

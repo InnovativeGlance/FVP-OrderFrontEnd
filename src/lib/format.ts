@@ -16,34 +16,43 @@ export function formatNumber(value: number): string {
   return value.toLocaleString('en-US');
 }
 
-// createdAt holds the store's wall-clock time saved as UTC, so format in UTC to keep the day stable.
-const utcDateFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
+/** Display format for dates across the app (date-fns tokens), e.g. "14/07/25" */
+export const DISPLAY_DATE_FMT = 'dd/MM/yy';
 
-export function formatUtcDate(iso: string | null | undefined): string {
-  if (!iso) return '-';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '-' : utcDateFormatter.format(d);
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+// createdAt holds the store's wall-clock time saved as UTC, so format in UTC to keep the day stable.
+function utcDate(d: Date): string {
+  return `${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth() + 1)}/${pad2(d.getUTCFullYear() % 100)}`;
 }
 
-const utcDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
+const utcTimeFormatter = new Intl.DateTimeFormat('en-US', {
   hour: 'numeric',
   minute: '2-digit',
   timeZone: 'UTC',
 });
 
-/** "Jul 14, 2025, 11:03 AM" — UTC for the same reason as formatUtcDate */
+/** "14/07/25" (dd/mm/yy) */
+export function formatUtcDate(iso: string | null | undefined): string {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '-' : utcDate(d);
+}
+
+/** "14/07/25, 11:03 AM" — UTC for the same reason as formatUtcDate */
 export function formatUtcDateTime(iso: string | null | undefined): string {
   if (!iso) return '-';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '-' : utcDateTimeFormatter.format(d);
+  return Number.isNaN(d.getTime()) ? '-' : `${utcDate(d)}, ${utcTimeFormatter.format(d)}`;
+}
+
+/** One-line address; empty when nothing is known */
+export function formatAddress(address: Partial<Address> | null | undefined): string {
+  if (!address) return '';
+  if (address.full) return address.full;
+  return [address.line1, address.line2, address.city, address.state, address.postcode, address.country]
+    .filter(Boolean)
+    .join(', ');
 }
 
 export function formatLocation(address: Address | null | undefined): string {
