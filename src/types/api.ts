@@ -195,3 +195,84 @@ export interface OrdersQuery {
 
 /** CSV export takes the list filters and sort; it always includes every matching order */
 export type OrdersExportQuery = Omit<OrdersQuery, 'page' | 'limit'>;
+
+export type ReportGroupBy = 'auto' | 'day' | 'week' | 'month' | 'year';
+
+/** Shared by every /api/reports endpoint; /summary ignores sortOrder */
+export interface ReportsQuery {
+  /** yyyy-MM-dd, inclusive (UTC days); leave out for all time */
+  from?: string;
+  /** yyyy-MM-dd, inclusive */
+  to?: string;
+  sortOrder?: SortOrder;
+}
+
+export interface ReportSummary {
+  /** Net revenue, same rule as the dashboard's totalRevenue */
+  totalRevenue: number;
+  totalOrders: number;
+  /** Distinct billing emails */
+  totalCustomers: number;
+  averageOrderValue: number;
+  completedOrders: number;
+  pendingOrders: number;
+  processingOrders: number;
+  failedOrders: number;
+  refundsIssued: { count: number; amount: number };
+  orderDateRange: { from: string | null; to: string | null };
+  currency: string;
+}
+
+export interface OrdersRevenueQuery extends ReportsQuery {
+  /** `auto` picks day/week/month/year from the range; a manual choice over 1000 bars is a 400 */
+  groupBy?: ReportGroupBy;
+}
+
+export interface OrdersRevenuePoint {
+  /** yyyy-MM-dd start of the period */
+  period: string;
+  label: string;
+  totalOrders: number;
+  totalRevenue: number;
+}
+
+/** Empty periods come back as zeros, so there are no gaps */
+export interface OrdersRevenueReport {
+  groupBy: Exclude<ReportGroupBy, 'auto'>;
+  sortOrder: SortOrder;
+  data: OrdersRevenuePoint[];
+  currency: string;
+}
+
+export type StatusSliceKey = 'completed' | 'pending' | 'processing' | 'failed' | 'other';
+
+export interface StatusSlice {
+  key: StatusSliceKey;
+  label: string;
+  count: number;
+  percentage: number;
+  revenue: number;
+  /** Raw statuses grouped into this slice */
+  statuses: string[];
+}
+
+/** `data` always holds all five slices, sorted by count in `sortOrder` */
+export interface StatusBreakdownReport {
+  totalOrders: number;
+  sortOrder: SortOrder;
+  data: StatusSlice[];
+  statuses: { status: string; count: number; percentage: number; revenue: number }[];
+  currency: string;
+}
+
+export interface RecentOrdersQuery extends ReportsQuery {
+  /** Default 10, max 50 */
+  limit?: number;
+}
+
+/** Always the newest `limit` orders in the range; sortOrder only changes how they are listed */
+export interface RecentOrdersReport {
+  data: OrderListItem[];
+  sortOrder: SortOrder;
+  limit: number;
+}

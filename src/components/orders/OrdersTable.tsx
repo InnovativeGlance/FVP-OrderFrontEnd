@@ -33,7 +33,8 @@ interface OrdersTableProps {
   loading: boolean;
   sortBy: SortBy;
   sortOrder: SortOrder;
-  onSort: (key: SortBy) => void;
+  /** Leave out for a fixed-order list; headers then render as plain labels */
+  onSort?: (key: SortBy) => void;
   onSelectOrder: (orderId: number) => void;
   /** Whether any search/status/date filter is active — changes the empty-state copy */
   hasFilters?: boolean;
@@ -120,6 +121,19 @@ export function OrdersTable({
           {columns.map((col) => {
             const active = sortBy === col.key;
             const Icon = !active ? ArrowUpDown : sortOrder === 'asc' ? ArrowUp : ArrowDown;
+            if (!onSort) {
+              return (
+                <TableHead
+                  key={col.key}
+                  className={cn(
+                    'text-xs font-semibold tracking-wide text-muted-foreground uppercase',
+                    col.align === 'right' && 'text-right',
+                  )}
+                >
+                  {col.label}
+                </TableHead>
+              );
+            }
             return (
               <TableHead
                 key={col.key}

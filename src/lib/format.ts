@@ -12,6 +12,19 @@ export function formatMoney(value: number, currency = 'USD'): string {
   return fmt.format(value);
 }
 
+const compactMoneyFormatters = new Map<string, Intl.NumberFormat>();
+
+/** "$21.9K" — for chart axes */
+export function formatMoneyCompact(value: number, currency = 'USD'): string {
+  const key = currency || 'USD';
+  let fmt = compactMoneyFormatters.get(key);
+  if (!fmt) {
+    fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: key, notation: 'compact' });
+    compactMoneyFormatters.set(key, fmt);
+  }
+  return fmt.format(value);
+}
+
 export function formatNumber(value: number): string {
   return value.toLocaleString('en-US');
 }

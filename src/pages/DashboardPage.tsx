@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { format, isValid, parse } from 'date-fns';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, BarChart3, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { StatCards } from '@/components/dashboard/StatCards';
@@ -176,6 +176,7 @@ export default function DashboardPage() {
   };
 
   const canClear = searchParams.size > 0 || searchInput !== '';
+  const reportsSearch = new URLSearchParams({ ...(from && { from }), ...(to && { to }) }).toString();
   const hasFilters = Boolean(urlSearch.trim() || status || from || to);
 
   return (
@@ -183,9 +184,18 @@ export default function DashboardPage() {
       <AppHeader />
       <OrderDetailsPanel orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
       <main className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Search, filter and review orders synced from the store.</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Search, filter and review orders synced from the store.</p>
+          </div>
+          {/* Carries the current date range over to the reports */}
+          <Button asChild>
+            <Link to={`/reports${reportsSearch ? `?${reportsSearch}` : ''}`}>
+              <BarChart3 />
+              Reports Analytics
+            </Link>
+          </Button>
         </div>
 
         <StatCards status={status as OrderStatus | undefined} />
