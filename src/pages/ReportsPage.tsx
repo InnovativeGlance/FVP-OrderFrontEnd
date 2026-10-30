@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { format, isValid, parse } from 'date-fns';
-import { AlertCircle, ArrowLeft, DollarSign, Receipt, ShoppingCart, Users } from 'lucide-react';
+import { AlertCircle, ArrowLeft, DollarSign, Receipt, ShoppingCart, Users, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { StatGrid } from '@/components/dashboard/StatCards';
@@ -26,8 +26,8 @@ const RECENT_LIMIT = 10;
 const DATE_FMT = 'yyyy-MM-dd';
 
 // Status counts are in the "Orders by Status" chart, so only the headline numbers get cards
-const SUMMARY_TITLES = ['Total Revenue', 'Total Orders', 'Total Customers', 'Avg. Order Value'];
-const SUMMARY_ICONS = [DollarSign, ShoppingCart, Users, Receipt];
+const SUMMARY_TITLES = ['Total Revenue', 'Total Spent', 'Total Orders', 'Total Customers', 'Avg. Order Value'];
+const SUMMARY_ICONS = [DollarSign, Wallet, ShoppingCart, Users, Receipt];
 
 type ParamKey = 'from' | 'to' | 'sortOrder' | 'groupBy';
 
@@ -172,6 +172,7 @@ export default function ReportsPage() {
   const summaryValues = s
     ? [
         formatMoney(s.totalRevenue, s.currency),
+        formatMoney(s.totalSpent, s.currency),
         formatNumber(s.totalOrders),
         formatNumber(s.totalCustomers),
         formatMoney(s.averageOrderValue, s.currency),
@@ -223,7 +224,13 @@ export default function ReportsPage() {
           <SectionError title="Couldn't load summary" error={summary.error} onRetry={summary.retry} />
         ) : (
           <div className={cn('transition-opacity', summary.loading && summary.data && 'opacity-50')}>
-            <StatGrid label="Report summary" titles={SUMMARY_TITLES} icons={SUMMARY_ICONS} values={summaryValues} />
+            <StatGrid
+              label="Report summary"
+              titles={SUMMARY_TITLES}
+              icons={SUMMARY_ICONS}
+              values={summaryValues}
+              className="lg:grid-cols-3 xl:grid-cols-5"
+            />
           </div>
         )}
 

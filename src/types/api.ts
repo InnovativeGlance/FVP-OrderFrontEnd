@@ -210,6 +210,8 @@ export interface ReportsQuery {
 export interface ReportSummary {
   /** Net revenue, same rule as the dashboard's totalRevenue */
   totalRevenue: number;
+  /** What customers spent on the matching orders, same rule as the customer page's totalSpent */
+  totalSpent: number;
   totalOrders: number;
   /** Distinct billing emails */
   totalCustomers: number;

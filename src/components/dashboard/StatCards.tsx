@@ -93,12 +93,14 @@ interface StatGridProps {
   icons: readonly LucideIcon[];
   /** One per title, in the same order; null while loading */
   values: readonly string[] | null;
+  /** Overrides the default four-up grid columns */
+  className?: string;
 }
 
 /** Four-up row of stat cards; shared by the dashboard and the customer page */
-export function StatGrid({ label, titles, icons, values }: StatGridProps) {
+export function StatGrid({ label, titles, icons, values, className }: StatGridProps) {
   return (
-    <section aria-label={label} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <section aria-label={label} className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4', className)}>
       {titles.map((title, i) => {
         const Icon = icons[i];
         return (
