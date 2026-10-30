@@ -188,7 +188,7 @@ export default function DashboardPage() {
           <p className="mt-1 text-sm text-muted-foreground">Search, filter and review orders synced from the store.</p>
         </div>
 
-        <StatCards />
+        <StatCards status={status as OrderStatus | undefined} />
 
         <Card className="gap-5 p-4 shadow-xs sm:p-6">
           <OrderFilters

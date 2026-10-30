@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { FilterX, Search, X } from 'lucide-react';
+import { FilterX, Info, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ApiError, isAbortError } from '@/lib/api-client';
 import { getStatuses } from '@/services/orders.service';
 import type { OrderStatus } from '@/types/api';
@@ -12,6 +13,8 @@ import { DatePicker } from './DatePicker';
 
 // Radix Select can't use '' as an item value, so "All" gets a sentinel.
 const ALL = '__all__';
+
+const SEARCH_FIELDS = ['Customer name', 'Email', 'Phone number', 'Order number', 'Address', 'Product name'];
 
 interface OrderFiltersProps {
   search: string;
@@ -61,7 +64,28 @@ export function OrderFilters({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:min-w-64">
-        <Label htmlFor="order-search">Search</Label>
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="order-search">Search</Label>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label="Searchable fields"
+                className="flex size-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
+                <Info className="size-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="start">
+              <p className="mb-1 font-medium">You can search by:</p>
+              <ul className="list-disc space-y-0.5 pl-4">
+                {SEARCH_FIELDS.map((field) => (
+                  <li key={field}>{field}</li>
+                ))}
+              </ul>
+            </TooltipContent>
+          </Tooltip>
+        </div>
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input
@@ -70,7 +94,7 @@ export function OrderFilters({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search name, email, phone, order #, address, product…"
-            className="pr-8 pl-8 [&::-webkit-search-cancel-button]:hidden"
+            className="truncate pr-8 pl-8 [&::-webkit-search-cancel-button]:hidden"
           />
           {search && (
             <button
@@ -91,14 +115,15 @@ export function OrderFilters({
           value={status ?? ALL}
           onValueChange={(v) => onStatusChange(v === ALL ? undefined : (v as OrderStatus))}
         >
-          <SelectTrigger id="order-status" className="w-full sm:w-52">
+          <SelectTrigger id="order-status" className="w-full sm:w-52" title={status}>
             <SelectValue placeholder="All" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All</SelectItem>
             {statusOptions.map((s) => (
               <SelectItem key={s} value={s}>
-                {s}
+                {/* Wrapper span lets the selected value truncate with "…" inside the trigger */}
+                <span className="truncate">{s}</span>
               </SelectItem>
             ))}
           </SelectContent>

@@ -15,8 +15,11 @@ const STATUS_CLASSES: Record<string, string> = {
   'On hold': AMBER,
   Quote: BLUE,
   'Purchase order': BLUE,
+  'Purchase Orders (Awaiting Payment)': AMBER,
+  'Purchase Order (Waiting To Ship)': BLUE,
   Draft: SLATE,
   Cancelled: RED,
+  Failed: RED,
   Refunded: RED,
 };
 

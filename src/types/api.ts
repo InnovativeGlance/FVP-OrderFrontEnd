@@ -20,9 +20,12 @@ export const ORDER_STATUSES = [
   'Completed',
   'Completed (Partial refund)',
   'Draft',
+  'Failed',
   'On hold',
   'Pending payment',
   'Purchase order',
+  'Purchase Order (Waiting To Ship)',
+  'Purchase Orders (Awaiting Payment)',
   'Quote',
   'Refunded',
 ] as const;
@@ -143,6 +146,10 @@ export interface DashboardCards {
   refundsIssued: { count: number; amount: number };
   orderDateRange: { from: string | null; to: string | null };
   currency: string;
+}
+
+export interface DashboardCardsQuery {
+  status?: OrderStatus;
 }
 
 export interface CustomerSummary {

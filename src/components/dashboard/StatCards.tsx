@@ -9,7 +9,7 @@ import { ApiError, isAbortError } from '@/lib/api-client';
 import { formatMoney, formatNumber, formatUtcDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { getDashboardCards } from '@/services/dashboard.service';
-import type { DashboardCards } from '@/types/api';
+import type { DashboardCards, OrderStatus } from '@/types/api';
 
 interface StatItem {
   title: string;
@@ -38,14 +38,15 @@ function toItems(cards: DashboardCards): StatItem[] {
   return TITLES.map((title, i) => ({ title, value: values[i] }));
 }
 
-export function StatCards() {
+export function StatCards({ status }: { status?: OrderStatus }) {
   const [cards, setCards] = useState<DashboardCards | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
-    getDashboardCards(controller.signal)
+    setCards(null);
+    getDashboardCards({ status }, controller.signal)
       .then((data) => {
         setCards(data);
         setError(null);
@@ -58,7 +59,7 @@ export function StatCards() {
         if (err instanceof ApiError && err.status === 0) toast.error(message, { id: 'network-error' });
       });
     return () => controller.abort();
-  }, [attempt]);
+  }, [attempt, status]);
 
   const retry = useCallback(() => {
     setError(null);
