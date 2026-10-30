@@ -16,14 +16,14 @@ export function formatNumber(value: number): string {
   return value.toLocaleString('en-US');
 }
 
-/** Display format for dates across the app (date-fns tokens), e.g. "14/07/25" */
-export const DISPLAY_DATE_FMT = 'dd/MM/yy';
+/** Display format for dates across the app (date-fns tokens), US style e.g. "07/14/25" */
+export const DISPLAY_DATE_FMT = 'MM/dd/yy';
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 // createdAt holds the store's wall-clock time saved as UTC, so format in UTC to keep the day stable.
 function utcDate(d: Date): string {
-  return `${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth() + 1)}/${pad2(d.getUTCFullYear() % 100)}`;
+  return `${pad2(d.getUTCMonth() + 1)}/${pad2(d.getUTCDate())}/${pad2(d.getUTCFullYear() % 100)}`;
 }
 
 const utcTimeFormatter = new Intl.DateTimeFormat('en-US', {
@@ -32,14 +32,14 @@ const utcTimeFormatter = new Intl.DateTimeFormat('en-US', {
   timeZone: 'UTC',
 });
 
-/** "14/07/25" (dd/mm/yy) */
+/** "07/14/25" (mm/dd/yy) */
 export function formatUtcDate(iso: string | null | undefined): string {
   if (!iso) return '-';
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '-' : utcDate(d);
 }
 
-/** "14/07/25, 11:03 AM" — UTC for the same reason as formatUtcDate */
+/** "07/14/25, 11:03 AM" — UTC for the same reason as formatUtcDate */
 export function formatUtcDateTime(iso: string | null | undefined): string {
   if (!iso) return '-';
   const d = new Date(iso);
