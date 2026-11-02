@@ -198,7 +198,7 @@ export default function DashboardPage() {
           </Button>
         </div>
 
-        <StatCards status={status as OrderStatus | undefined} />
+        <StatCards status={status as OrderStatus | undefined} from={from} to={to} />
 
         <Card className="gap-5 p-4 shadow-xs sm:p-6">
           <OrderFilters

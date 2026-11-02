@@ -9,7 +9,7 @@ import { ApiError, isAbortError } from '@/lib/api-client';
 import { formatMoney, formatNumber, formatUtcDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { getDashboardCards } from '@/services/dashboard.service';
-import type { DashboardCards, OrderStatus } from '@/types/api';
+import type { DashboardCards, DashboardCardsQuery } from '@/types/api';
 
 interface StatItem {
   title: string;
@@ -27,8 +27,10 @@ const TONES = [
 const TITLES = ['Total Orders', 'Total Revenue', 'Refunds Issued', 'Order Date Range'];
 const ICONS = [ShoppingCart, DollarSign, RotateCcw, CalendarRange];
 
-function toItems(cards: DashboardCards): StatItem[] {
-  const { from, to } = cards.orderDateRange;
+function toItems(cards: DashboardCards, selectedFrom?: string, selectedTo?: string): StatItem[] {
+  // The dates picked in the filters win; an open end falls back to the oldest/newest matching order
+  const from = selectedFrom ?? cards.orderDateRange.from;
+  const to = selectedTo ?? cards.orderDateRange.to;
   const values = [
     formatNumber(cards.totalOrders),
     formatMoney(cards.totalRevenue, cards.currency),
@@ -38,7 +40,7 @@ function toItems(cards: DashboardCards): StatItem[] {
   return TITLES.map((title, i) => ({ title, value: values[i] }));
 }
 
-export function StatCards({ status }: { status?: OrderStatus }) {
+export function StatCards({ status, from, to }: DashboardCardsQuery) {
   const [cards, setCards] = useState<DashboardCards | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -46,7 +48,7 @@ export function StatCards({ status }: { status?: OrderStatus }) {
   useEffect(() => {
     const controller = new AbortController();
     setCards(null);
-    getDashboardCards({ status }, controller.signal)
+    getDashboardCards({ status, from, to }, controller.signal)
       .then((data) => {
         setCards(data);
         setError(null);
@@ -59,7 +61,7 @@ export function StatCards({ status }: { status?: OrderStatus }) {
         if (err instanceof ApiError && err.status === 0) toast.error(message, { id: 'network-error' });
       });
     return () => controller.abort();
-  }, [attempt, status]);
+  }, [attempt, status, from, to]);
 
   const retry = useCallback(() => {
     setError(null);
@@ -82,7 +84,7 @@ export function StatCards({ status }: { status?: OrderStatus }) {
     );
   }
 
-  const items = cards ? toItems(cards) : null;
+  const items = cards ? toItems(cards, from, to) : null;
 
   return <StatGrid label="Order statistics" titles={TITLES} icons={ICONS} values={items?.map((item) => item.value) ?? null} />;
 }

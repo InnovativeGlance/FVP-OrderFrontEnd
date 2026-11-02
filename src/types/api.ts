@@ -150,6 +150,10 @@ export interface DashboardCards {
 
 export interface DashboardCardsQuery {
   status?: OrderStatus;
+  /** yyyy-MM-dd, inclusive */
+  from?: string;
+  /** yyyy-MM-dd, inclusive */
+  to?: string;
 }
 
 export interface CustomerSummary {
