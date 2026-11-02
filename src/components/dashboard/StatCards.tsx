@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { format } from 'date-fns';
 import { AlertCircle, CalendarRange, DollarSign, RotateCcw, ShoppingCart, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -28,9 +29,9 @@ const TITLES = ['Total Orders', 'Total Revenue', 'Refunds Issued', 'Order Date R
 const ICONS = [ShoppingCart, DollarSign, RotateCcw, CalendarRange];
 
 function toItems(cards: DashboardCards, selectedFrom?: string, selectedTo?: string): StatItem[] {
-  // The dates picked in the filters win; an open end falls back to the oldest/newest matching order
+  // The dates picked in the filters win; an open start falls back to the oldest matching order, an open end to today
   const from = selectedFrom ?? cards.orderDateRange.from;
-  const to = selectedTo ?? cards.orderDateRange.to;
+  const to = selectedTo ?? format(new Date(), 'yyyy-MM-dd');
   const values = [
     formatNumber(cards.totalOrders),
     formatMoney(cards.totalRevenue, cards.currency),
